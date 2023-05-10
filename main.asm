@@ -22,14 +22,14 @@ _main PROC
     ; Initialize FP
     finit
 
-    ; Load initial values
-    fld root
-    fld oldRoot
+
 
 iteration:
     ; Calculate the absolute difference between root and oldRoot
     ; |root - oldRoot|
-    fld ST(0)
+    ; Load initial values
+    fld root
+    fld oldRoot
     fsub ST(0), ST(1)
     fabs
 
@@ -39,22 +39,25 @@ iteration:
     fcom		; ST(0) ? ST(1)
     fstsw AX
     sahf
-    jb exit_loop
-
-    ; Update oldRoot with the current root value
-    fstp oldRoot
-    fld root
+    ja exit_loop
 
     ; Calculate new root: (2.0 * root + x / (root * root)) / 3.0
-    fld two
-    fmul ST(0), ST(1)
-    fld x
-    fld ST(2)
-    fmul ST(0), ST(1)
-    fdivr
-    fadd
-    fld three
-    fdivr
+    fld two         ; Load constant 2.0 onto the FPU stack
+    fmul ST(0), ST(1) ; Multiply ST(0) by ST(1), ST(0) now holds 2.0 * root
+    fld x           ; Load x onto the FPU stack
+    fadd            ; st(0) holds 2rootx
+    fld root        ; Load root 
+    fld root        ; st(0,1) hold root
+    fmul            ; Multiply ST(0) by ST(1), ST(0) now holds root * root
+    fdivr           ; Divide 2root+x by (root * root), ST(0) now holds 2root+x / (root * root)
+    fld three       ; Load constant 3.0 onto the FPU stack
+    fdivr           ; Divide ST(1) by ST(0), ST(0) now holds the new root
+
+    ; Adjust the FPU stack
+    
+    fld root     ; oldRoot (previously root) in ST(0), root in ST (1)      
+    fstp oldRoot
+    fstp root
 
     ; Continue the iteration
     jmp iteration
